@@ -14,6 +14,7 @@ import { IosManager, IosRobot } from "./ios";
 import { PNG } from "./png";
 import { isScalingAvailable, Image } from "./image-utils";
 import { getMobilecliPath } from "./mobilecli";
+import { detectUIElements, findElementByTemplate, isPythonCVAvailable } from "./cv-bridge";
 
 interface MobilecliDevicesResponse {
 	status: "ok";
@@ -583,6 +584,85 @@ export const createMcpServer = (): McpServer => {
 			const robot = getRobotFromDevice(device);
 			const orientation = await robot.getOrientation();
 			return `Current device orientation is ${orientation}`;
+		}
+	);
+
+	tool(
+		"mobile_detect_ui_elements",
+		"Detect UI elements in Unity games or apps where native accessibility APIs don't work. Uses Computer Vision (edge detection + contour analysis) to find buttons, icons, and other UI elements. Returns coordinates that can be used with mobile_click_on_screen_at_coordinates. Requires Python 3 and OpenCV (pip3 install -r src/cv/requirements.txt).",
+		{
+			device: z.string().describe("The device identifier to use. Use mobile_list_available_devices to find which devices are available to you."),
+			min_area: z.number().optional().describe("Minimum area in pixels for UI elements (default: 400). Smaller values detect smaller elements but may include noise."),
+		},
+		async ({ device, min_area }) => {
+			// Check if Python CV is available
+			const availability = isPythonCVAvailable();
+			if (!availability.available) {
+				throw new ActionableError(
+					`Computer Vision features require Python 3 and OpenCV. ${availability.error}`
+				);
+			}
+
+			const robot = getRobotFromDevice(device);
+
+			// Take screenshot
+			const screenshot = await robot.getScreenshot();
+			const screenshotBase64 = screenshot.toString("base64");
+
+			// Detect UI elements
+			const result = detectUIElements(screenshotBase64, min_area || 400);
+
+			if (!result.success) {
+				throw new ActionableError(result.error || "UI detection failed");
+			}
+
+			// Format response
+			const elements = result.elements || [];
+			return `Found ${result.count} UI elements using Computer Vision:\n${JSON.stringify(elements, null, 2)}\n\nYou can click on these elements using mobile_click_on_screen_at_coordinates with the center_x and center_y values.`;
+		}
+	);
+
+	tool(
+		"mobile_find_element_by_template",
+		"Find UI elements in Unity games by matching a template image. Useful when you have a screenshot of a button/icon you want to find. Works with different scales and returns all matches with confidence scores. Requires Python 3 and OpenCV (pip3 install -r src/cv/requirements.txt).",
+		{
+			device: z.string().describe("The device identifier to use. Use mobile_list_available_devices to find which devices are available to you."),
+			template_image_base64: z.string().describe("Base64 encoded template image to search for (the UI element you want to find)"),
+			confidence_threshold: z.number().optional().describe("Minimum confidence threshold 0.0-1.0 (default: 0.7). Higher values = more strict matching."),
+		},
+		async ({ device, template_image_base64, confidence_threshold }) => {
+			// Check if Python CV is available
+			const availability = isPythonCVAvailable();
+			if (!availability.available) {
+				throw new ActionableError(
+					`Computer Vision features require Python 3 and OpenCV. ${availability.error}`
+				);
+			}
+
+			const robot = getRobotFromDevice(device);
+
+			// Take screenshot
+			const screenshot = await robot.getScreenshot();
+			const screenshotBase64 = screenshot.toString("base64");
+
+			// Find matches
+			const result = findElementByTemplate(
+				screenshotBase64,
+				template_image_base64,
+				confidence_threshold || 0.7
+			);
+
+			if (!result.success) {
+				throw new ActionableError(result.error || "Template matching failed");
+			}
+
+			// Format response
+			const matches = result.matches || [];
+			if (matches.length === 0) {
+				return `No matches found. Try lowering the confidence threshold (current: ${confidence_threshold || 0.7})`;
+			}
+
+			return `Found ${result.count} matches:\n${JSON.stringify(matches, null, 2)}\n\nYou can click on these elements using mobile_click_on_screen_at_coordinates with the center_x and center_y values.`;
 		}
 	);
 
