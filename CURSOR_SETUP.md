@@ -10,9 +10,16 @@ pip3 install -r src/cv/requirements.txt
 
 ### 2. Cursor MCP 설정
 
-#### Option A: 전역 명령어 사용 (권장)
+#### Option A: NPM Link 사용 (권장 ⭐)
 
-프로젝트를 전역으로 링크했으므로, Cursor MCP 설정 파일에 추가:
+프로젝트 디렉토리에서 전역 링크 생성:
+
+```bash
+cd /path/to/mobile-mcp
+npm install
+npm run build
+npm link
+```
 
 **설정 파일 위치:**
 - Linux: `~/.config/Cursor/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json`
@@ -34,18 +41,40 @@ pip3 install -r src/cv/requirements.txt
 
 #### Option B: 절대 경로 사용
 
+먼저 프로젝트를 빌드:
+
+```bash
+cd /path/to/mobile-mcp
+npm install
+npm run build
+```
+
+그 다음 Cursor 설정에 **실제 경로**를 입력:
+
 ```json
 {
   "mcpServers": {
     "mobile-mcp": {
       "command": "node",
       "args": [
-        "/home/user/mobile-mcp/lib/index.js"
+        "/YOUR/ACTUAL/PATH/mobile-mcp/lib/index.js"
       ],
       "disabled": false
     }
   }
 }
+```
+
+**경로 예시:**
+- macOS: `/Users/yourname/projects/mobile-mcp/lib/index.js`
+- Linux: `/home/yourname/projects/mobile-mcp/lib/index.js`
+- Windows: `C:\\Users\\yourname\\projects\\mobile-mcp\\lib\\index.js`
+
+**실제 경로 확인 방법:**
+```bash
+cd /path/to/mobile-mcp
+pwd  # 현재 경로 출력
+ls lib/index.js  # 파일 존재 확인
 ```
 
 ### 3. Cursor 재시작

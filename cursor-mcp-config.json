@@ -3,13 +3,14 @@
     "mobile-mcp": {
       "command": "node",
       "args": [
-        "/home/user/mobile-mcp/lib/index.js"
+        "<YOUR_PATH_TO_REPO>/mobile-mcp/lib/index.js"
       ],
       "env": {
         "NODE_ENV": "production"
       },
       "disabled": false,
-      "alwaysAllow": []
+      "alwaysAllow": [],
+      "_comment": "Replace <YOUR_PATH_TO_REPO> with your actual path, e.g., /Users/username or /home/username"
     }
   }
 }
