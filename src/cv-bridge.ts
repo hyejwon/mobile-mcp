@@ -10,6 +10,8 @@
 
 import { execFileSync } from "child_process";
 import path from "path";
+import fs from "fs";
+import os from "os";
 import { trace } from "./logger";
 
 export interface UIElement {
@@ -99,14 +101,21 @@ export const detectUIElements = (
 		};
 	}
 
+	let tempFile: string | null = null;
+
 	try {
 		const scriptPath = path.join(__dirname, "cv", "ui_detector.py");
 
-		trace(`Running UI detector with min_area=${minArea}`);
+		// Write base64 to temp file to avoid E2BIG error
+		tempFile = path.join(os.tmpdir(), `mcp-screenshot-${Date.now()}.png`);
+		const imageBuffer = Buffer.from(screenshotBase64, "base64");
+		fs.writeFileSync(tempFile, imageBuffer);
+
+		trace(`Running UI detector with min_area=${minArea}, temp file: ${tempFile}`);
 
 		const result = execFileSync(
 			"python3",
-			[scriptPath, screenshotBase64, minArea.toString()],
+			[scriptPath, tempFile, minArea.toString()],
 			{
 				encoding: "utf8",
 				maxBuffer: 10 * 1024 * 1024, // 10MB buffer
@@ -124,6 +133,15 @@ export const detectUIElements = (
 			success: false,
 			error: `UI detection failed: ${error.message}`
 		};
+	} finally {
+		// Clean up temp file
+		if (tempFile && fs.existsSync(tempFile)) {
+			try {
+				fs.unlinkSync(tempFile);
+			} catch (e) {
+				// Ignore cleanup errors
+			}
+		}
 	}
 };
 
@@ -148,14 +166,28 @@ export const findElementByTemplate = (
 		};
 	}
 
+	let screenshotFile: string | null = null;
+	let templateFile: string | null = null;
+
 	try {
 		const scriptPath = path.join(__dirname, "cv", "template_matcher.py");
+
+		// Write images to temp files to avoid E2BIG error
+		const timestamp = Date.now();
+		screenshotFile = path.join(os.tmpdir(), `mcp-screenshot-${timestamp}.png`);
+		templateFile = path.join(os.tmpdir(), `mcp-template-${timestamp}.png`);
+
+		const screenshotBuffer = Buffer.from(screenshotBase64, "base64");
+		const templateBuffer = Buffer.from(templateBase64, "base64");
+
+		fs.writeFileSync(screenshotFile, screenshotBuffer);
+		fs.writeFileSync(templateFile, templateBuffer);
 
 		trace(`Running template matcher with threshold=${threshold}`);
 
 		const result = execFileSync(
 			"python3",
-			[scriptPath, screenshotBase64, templateBase64, threshold.toString()],
+			[scriptPath, screenshotFile, templateFile, threshold.toString()],
 			{
 				encoding: "utf8",
 				maxBuffer: 10 * 1024 * 1024,
@@ -173,5 +205,21 @@ export const findElementByTemplate = (
 			success: false,
 			error: `Template matching failed: ${error.message}`
 		};
+	} finally {
+		// Clean up temp files
+		if (screenshotFile && fs.existsSync(screenshotFile)) {
+			try {
+				fs.unlinkSync(screenshotFile);
+			} catch (e) {
+				// Ignore cleanup errors
+			}
+		}
+		if (templateFile && fs.existsSync(templateFile)) {
+			try {
+				fs.unlinkSync(templateFile);
+			} catch (e) {
+				// Ignore cleanup errors
+			}
+		}
 	}
 };
