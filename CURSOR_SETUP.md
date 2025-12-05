@@ -4,8 +4,49 @@
 
 ### 1. Python 의존성 설치 (Computer Vision 기능용)
 
+**Option A: 가상환경 사용 (권장 ⭐)**
+
+```bash
+cd /path/to/mobile-mcp
+
+# 가상환경 생성
+python3 -m venv venv
+
+# 가상환경 활성화
+source venv/bin/activate  # macOS/Linux
+# 또는
+venv\Scripts\activate  # Windows
+
+# OpenCV 설치
+pip install -r src/cv/requirements.txt
+
+# 확인
+python -c "import cv2; print('OpenCV:', cv2.__version__)"
+```
+
+mobile-mcp는 프로젝트 루트의 `venv/bin/python`을 **자동으로 감지**합니다!
+
+**Option B: 시스템 전역 설치**
+
 ```bash
 pip3 install -r src/cv/requirements.txt
+```
+
+**Option C: 커스텀 Python 경로**
+
+Cursor 설정에서 환경변수 추가:
+```json
+{
+  "mcpServers": {
+    "mobile-mcp": {
+      "command": "node",
+      "args": ["..."],
+      "env": {
+        "MOBILE_MCP_PYTHON": "/custom/path/to/python"
+      }
+    }
+  }
+}
 ```
 
 ### 2. Cursor MCP 설정

@@ -14,6 +14,29 @@ import fs from "fs";
 import os from "os";
 import { trace } from "./logger";
 
+/**
+ * Get Python executable path
+ * Priority: MOBILE_MCP_PYTHON env var > venv/bin/python > python3
+ */
+const getPythonPath = (): string => {
+	// Check environment variable
+	if (process.env.MOBILE_MCP_PYTHON) {
+		return process.env.MOBILE_MCP_PYTHON;
+	}
+
+	// Check for venv in project root (go up from __dirname/lib to project root)
+	const projectRoot = path.join(__dirname, "..");
+	const venvPython = path.join(projectRoot, "venv", "bin", "python");
+
+	if (fs.existsSync(venvPython)) {
+		trace(`Using venv Python: ${venvPython}`);
+		return venvPython;
+	}
+
+	// Fallback to system python3
+	return "python3";
+};
+
 export interface UIElement {
 	x: number;
 	y: number;
@@ -57,11 +80,13 @@ export interface CVMatchResult {
  */
 export const isPythonCVAvailable = (): { available: boolean; error?: string } => {
 	try {
+		const pythonPath = getPythonPath();
+
 		// Check Python
-		execFileSync("python3", ["--version"], { timeout: 5000 });
+		execFileSync(pythonPath, ["--version"], { timeout: 5000 });
 
 		// Check OpenCV
-		const result = execFileSync("python3", ["-c", "import cv2; import numpy; print('OK')"], {
+		const result = execFileSync(pythonPath, ["-c", "import cv2; import numpy; print('OK')"], {
 			timeout: 5000,
 			encoding: "utf8"
 		});
@@ -105,16 +130,17 @@ export const detectUIElements = (
 
 	try {
 		const scriptPath = path.join(__dirname, "cv", "ui_detector.py");
+		const pythonPath = getPythonPath();
 
 		// Write base64 to temp file to avoid E2BIG error
 		tempFile = path.join(os.tmpdir(), `mcp-screenshot-${Date.now()}.png`);
 		const imageBuffer = Buffer.from(screenshotBase64, "base64");
 		fs.writeFileSync(tempFile, imageBuffer);
 
-		trace(`Running UI detector with min_area=${minArea}, temp file: ${tempFile}`);
+		trace(`Running UI detector with min_area=${minArea}, temp file: ${tempFile}, python: ${pythonPath}`);
 
 		const result = execFileSync(
-			"python3",
+			pythonPath,
 			[scriptPath, tempFile, minArea.toString()],
 			{
 				encoding: "utf8",
@@ -181,6 +207,7 @@ export const findElementByTemplate = (
 
 	try {
 		const scriptPath = path.join(__dirname, "cv", "template_matcher.py");
+		const pythonPath = getPythonPath();
 
 		// Write images to temp files to avoid E2BIG error
 		const timestamp = Date.now();
@@ -193,10 +220,10 @@ export const findElementByTemplate = (
 		fs.writeFileSync(screenshotFile, screenshotBuffer);
 		fs.writeFileSync(templateFile, templateBuffer);
 
-		trace(`Running template matcher with threshold=${threshold}`);
+		trace(`Running template matcher with threshold=${threshold}, python: ${pythonPath}`);
 
 		const result = execFileSync(
-			"python3",
+			pythonPath,
 			[scriptPath, screenshotFile, templateFile, threshold.toString()],
 			{
 				encoding: "utf8",
