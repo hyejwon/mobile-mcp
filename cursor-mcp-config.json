@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "mobile-mcp": {
+      "command": "node",
+      "args": [
+        "/home/user/mobile-mcp/lib/index.js"
+      ],
+      "env": {
+        "NODE_ENV": "production"
+      },
+      "disabled": false,
+      "alwaysAllow": []
+    }
+  }
+}
