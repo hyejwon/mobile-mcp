@@ -129,9 +129,19 @@ export const detectUIElements = (
 		return parsed as CVDetectionResult;
 	} catch (error: any) {
 		trace(`UI detection failed: ${error.message}`);
+
+		// Capture stderr if available
+		let errorDetails = error.message;
+		if (error.stderr) {
+			errorDetails += `\nStderr: ${error.stderr.toString()}`;
+		}
+		if (error.stdout) {
+			errorDetails += `\nStdout: ${error.stdout.toString()}`;
+		}
+
 		return {
 			success: false,
-			error: `UI detection failed: ${error.message}`
+			error: `UI detection failed: ${errorDetails}`
 		};
 	} finally {
 		// Clean up temp file
@@ -201,9 +211,19 @@ export const findElementByTemplate = (
 		return parsed as CVMatchResult;
 	} catch (error: any) {
 		trace(`Template matching failed: ${error.message}`);
+
+		// Capture stderr if available
+		let errorDetails = error.message;
+		if (error.stderr) {
+			errorDetails += `\nStderr: ${error.stderr.toString()}`;
+		}
+		if (error.stdout) {
+			errorDetails += `\nStdout: ${error.stdout.toString()}`;
+		}
+
 		return {
 			success: false,
-			error: `Template matching failed: ${error.message}`
+			error: `Template matching failed: ${errorDetails}`
 		};
 	} finally {
 		// Clean up temp files
