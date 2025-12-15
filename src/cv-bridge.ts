@@ -24,8 +24,11 @@ const getPythonPath = (): string => {
 		return process.env.MOBILE_MCP_PYTHON;
 	}
 
-	// Check for venv in project root (go up from __dirname/lib to project root)
-	const projectRoot = path.join(__dirname, "..");
+	// Check for venv in project root
+	// __dirname could be src/ (ts-node) or lib/ (compiled)
+	const projectRoot = __dirname.includes("lib")
+		? path.join(__dirname, "..")  // lib/ -> project root
+		: path.join(__dirname, "..");  // src/ -> project root
 	const venvPython = path.join(projectRoot, "venv", "bin", "python");
 
 	if (fs.existsSync(venvPython)) {
@@ -35,6 +38,18 @@ const getPythonPath = (): string => {
 
 	// Fallback to system python3
 	return "python3";
+};
+
+/**
+ * Get CV script path (works for both src/ and lib/ execution)
+ */
+const getCVScriptPath = (scriptName: string): string => {
+	// If running from lib/ (compiled), use lib/cv/
+	if (__dirname.includes("lib")) {
+		return path.join(__dirname, "cv", scriptName);
+	}
+	// If running from src/ (ts-node), use src/cv/
+	return path.join(__dirname, "cv", scriptName);
 };
 
 export interface UIElement {
@@ -129,7 +144,7 @@ export const detectUIElements = (
 	let tempFile: string | null = null;
 
 	try {
-		const scriptPath = path.join(__dirname, "cv", "ui_detector.py");
+		const scriptPath = getCVScriptPath("ui_detector.py");
 		const pythonPath = getPythonPath();
 
 		// Write base64 to temp file to avoid E2BIG error
@@ -206,7 +221,7 @@ export const findElementByTemplate = (
 	let templateFile: string | null = null;
 
 	try {
-		const scriptPath = path.join(__dirname, "cv", "template_matcher.py");
+		const scriptPath = getCVScriptPath("template_matcher.py");
 		const pythonPath = getPythonPath();
 
 		// Write images to temp files to avoid E2BIG error
