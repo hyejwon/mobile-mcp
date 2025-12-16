@@ -805,16 +805,28 @@ export const createMcpServer = (): McpServer => {
 					return `No buttons found on the Unity game screen. Make sure the game is displaying the expected screen.`;
 				}
 
-				// Format the response
-				const buttonList = buttons.map((btn, index) => ({
-					index: index + 1,
-					name: btn.SpecifiedName,
-					description: btn.Description,
-					position: { x: btn.PositionX, y: btn.PositionY },
-					gameObject: btn.GameObjectName,
-				}));
+				// Format the response, filtering out buttons with negative PositionY
+				const buttonList = buttons
+					.filter(btn => btn.PositionY >= 0)
+					.map((btn, index) => ({
+						index: index + 1,
+						name: btn.SpecifiedName,
+						description: btn.Description,
+						position: { x: btn.PositionX, y: btn.PositionY },
+						gameObject: btn.GameObjectName,
+					}));
 
-				return `Found ${buttons.length} buttons on Unity game screen:\n${JSON.stringify(buttonList, null, 2)}\n\nYou can click on these buttons using mobile_unity_click_button with the button name.`;
+				const filteredCount = buttonList.length;
+				const totalCount = buttons.length;
+				const excludedCount = totalCount - filteredCount;
+
+				let message = `Found ${filteredCount} button(s) on Unity game screen`;
+				if (excludedCount > 0) {
+					message += ` (${excludedCount} button(s) with negative PositionY excluded)`;
+				}
+				message += `:\n${JSON.stringify(buttonList, null, 2)}\n\nYou can click on these buttons using mobile_unity_click_button with the button name.`;
+
+				return message;
 			} catch (error: any) {
 				if (error instanceof ActionableError) {
 					throw error;
